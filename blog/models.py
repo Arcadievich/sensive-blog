@@ -10,6 +10,33 @@ class PostQuerySet(models.QuerySet):
         posts_at_year = self.filter(published_at__year=year).order_by('published_at')
         return posts_at_year
     
+    def popular(self):
+        """Сортирует посты по убыванию кол-ва лайков."""
+        return self.annotate(num_likes=Count('likes')).order_by('-num_likes')
+    
+    def fetch_with_comments_count(self):
+        """Оптимизированный метод для добавления кол-ва коментариев."""
+        posts = list(self)
+
+        post_ids = [post.id for post in posts]    # Получаем ID постов
+
+        # Оптимизация: делаем отдельный запрос только для этих постов
+        # Вместо annotate с двумя Count в одном запросе
+        posts_with_counts = (    
+            Post.objects
+            .filter(id__in=post_ids)
+            .annotate(num_comments=Count('comments'))
+        )
+
+        # Создаем словарь id:кол-во комментариев
+        ids_and_comments = dict(posts_with_counts.values_list('id', 'num_comments'))
+
+        # Присваиваем кол-во комментариев каждому посту
+        for post in posts:
+            post.num_comments = ids_and_comments[post.id]
+
+        return posts
+
 
 class TagQuerySet(models.QuerySet):
 
