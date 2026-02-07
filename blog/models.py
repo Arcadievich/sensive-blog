@@ -5,10 +5,6 @@ from django.db.models import Count
 
 
 class PostQuerySet(models.QuerySet):
-
-    def year(self, year):
-        posts_at_year = self.filter(published_at__year=year).order_by('published_at')
-        return posts_at_year
     
     def popular(self):
         """Сортирует посты по убыванию кол-ва лайков."""
@@ -28,10 +24,8 @@ class PostQuerySet(models.QuerySet):
             .annotate(num_comments=Count('comments'))
         )
 
-        # Создаем словарь id:кол-во комментариев
         ids_and_comments = dict(posts_with_counts.values_list('id', 'num_comments'))
 
-        # Присваиваем кол-во комментариев каждому посту
         for post in posts:
             post.num_comments = ids_and_comments[post.id]
 
